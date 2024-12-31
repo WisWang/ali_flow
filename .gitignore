@@ -1,0 +1,49 @@
+# Go 相关
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+terraform-provider-yunxiao
+# Go 工作目录
+/bin/
+/pkg/
+
+# Terraform 相关
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+# 编译后的 provider
+terraform-provider-yunxiao
+
+# IDE 相关
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 环境变量和敏感信息
+.env
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# 日志文件
+*.log
+
+# 临时文件
+tmp/
+temp/ 
