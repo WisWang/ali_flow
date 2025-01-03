@@ -1,0 +1,9 @@
+
+
+image: registry.openanolis.cn/openanolis/nginx:1.14.1-8.6
+
+replicas: 2
+
+canary: true
+
+

@@ -109,7 +109,6 @@ cp terraform-provider-yunxiao ~/.terraform.d/plugins/registry.terraform.io/aliyu
 ## 许可证
 
 [MIT License](LICENSE)
-
 ## 开发模式
 
 在开发过程中，可以使用以下方式直接运行源代码而不需要编译：
@@ -123,7 +122,7 @@ go run main.go
 
 Linux/MacOS:
 ```bash
-export TF_CLI_CONFIG_FILE=$(pwd)/dev/dev.tfrc
+export TF_CLI_CONFIG_FILE=$(pwd)/../../dev.tfrc
 terraform init
 terraform plan
 ```

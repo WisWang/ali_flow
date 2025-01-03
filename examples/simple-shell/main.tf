@@ -10,7 +10,7 @@ provider "yunxiao" {
 
 # 创建一个简单的flow
 resource "yunxiao_flow" "simple_shell" {
-  name        = "demo2"
+  name        = "demo5"
   description = "一个简单的shell命令执行流水线"
   
   config = {

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Release.Name }}
+    release: {{ if .Values.canary -}}canary{{- else }}normal{{- end }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ if .Values.canary -}}1{{ else }}{{ .Values.replicas }}{{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      release: {{ if .Values.canary -}}canary{{- else }}normal{{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        release: {{ if .Values.canary -}}canary{{- else }}normal{{- end }}
+    spec:
+      containers:
+        - name: {{ .Release.Name }}
+          command:
+            - /bin/sh
+            - -c
+            - |-
+              nginx -g 'daemon off;'
+          image: alibaba-cloud-linux-3-registry.cn-hangzhou.cr.aliyuncs.com/alinux3/nginx_optimized:20240221-1.20.1-2.3.0
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 80
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ .Release.Name }}-nginx-config 
