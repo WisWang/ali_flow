@@ -71,30 +71,36 @@ step_2:
 
 | 参数 | 描述 | 默认值 |
 |------|------|--------|
-| `canary` | 是否启用金丝雀发布 | `false` |
 | `image.tag` | 容器镜像标签 | `latest` |
 
 ## 发布流程
 
 1. 稳定版本发布：
+这步会删除金丝雀发布的版本
+
 ```bash
 # canary=false
 helm_app_name=${PIPELINE_NAME}
-helm upgrade --install --namespace=default $helm_app_name .
+helm --namespace=default uninstall ${PIPELINE_NAME}-canary || date
+helm upgrade $helm_opts \
+  --namespace=default \
+  --set canary=$canary \
+  $helm_app_name .
+
 ```
 
 2. 金丝雀发布：
 ```bash
 # canary=true
 helm_app_name=${PIPELINE_NAME}-canary
-helm upgrade --install --namespace=default --set canary=true $helm_app_name .
+helm upgrade $helm_opts \
+  --namespace=default \
+  --set canary=$canary \
+  $helm_app_name .
+
 ```
 
-3. 金丝雀回滚：
-```bash
-# 删除金丝雀版本
-helm --namespace=default uninstall ${PIPELINE_NAME}-canary
-```
+
 
 ## 注意事项
 
@@ -107,8 +113,7 @@ helm --namespace=default uninstall ${PIPELINE_NAME}-canary
 
 1. 总是使用明确的版本标签
 2. 保持 Chart.yaml 结构的一致性
-3. 使用 `--atomic` 参数确保原子性部署
-4. 合理设置资源限制和请求
+3. 合理设置资源限制和请求
 
 ## 故障排查
 
