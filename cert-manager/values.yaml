@@ -1,0 +1,19 @@
+# cert-manager 配置
+cert-manager:
+  installCRDs: true
+  
+# 阿里云 DNS 配置
+alicloud:
+  accessKeyId: "" # 通过 --set alicloud.accessKeyId=xxx 设置
+  accessKeySecret: "" # 通过 --set alicloud.accessKeySecret=xxx 设置
+  regionId: "cn-hangzhou"
+
+# 证书配置
+certificate:
+  name: "example-cert"
+  namespace: "default"
+  commonName: "*.example.com"
+  dnsNames:
+    - "example.com"
+    - "*.example.com"
+  secretName: "example-tls" 
