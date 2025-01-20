@@ -7,3 +7,4 @@ resource "alicloud_alidns_record" "mfa_dns_record" {
   value       = "10.8.1.1"               # A记录对应的IP地址，根据实际需求替换
   ttl         = 600                        # TTL值，可选，默认是600秒
 }
+
