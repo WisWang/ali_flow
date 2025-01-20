@@ -6,7 +6,7 @@ resource "alicloud_dns_domain" "example_domain" {
 resource "alicloud_dns_record" "example_a_record" {
   domain_name = alicloud_dns_domain.example_domain.name
   type        = "A"
-  name        = "mfa"
+  host_record        = "mfa"
   value       = "192.168.1.100"
   ttl         = 600
 }
