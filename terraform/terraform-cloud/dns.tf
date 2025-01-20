@@ -1,6 +1,6 @@
 
 
-resource "alicloud_alidns_domain_record" "mfa_dns_record" {
+resource "alicloud_alidns_record" "mfa_dns_record" {
   domain_name = "aliyun.18600113834.shop" # 替换为你的顶级域名
   rr          = "mfa"                      # 子域名部分
   type        = "A"                        # DNS记录类型，这里以A记录为例
