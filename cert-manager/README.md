@@ -16,6 +16,24 @@ helm repo add jetstack https://charts.jetstack.io
 helm repo update
 ```
 
+
+配置 alidns-secret
+
+```
+AK=$(echo -n <AccessKey ID> | base64)
+SK=$(echo -n <AccessKey Secret> | base64)
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alidns-secret
+  namespace: cert-manager
+data:
+  access-key: $AK
+  secret-key: $SK
+EOF
+```
+
 2. 安装 Chart：
 ```bash
 helm install cert-manager-setup . \
