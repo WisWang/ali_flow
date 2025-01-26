@@ -8,7 +8,7 @@
 *.out
 go.work
 
-atlantis
+
 
 terraform-provider-yunxiao
 # Go 工作目录
