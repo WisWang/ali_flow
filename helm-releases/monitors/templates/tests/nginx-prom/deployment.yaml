@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-nginx-prom
+  namespace: {{ .Values.namespace | default "monitoring" }}
+  labels:
+    app: {{ .Release.Name }}-nginx-prom
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.nginx.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-nginx-prom
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-nginx-prom
+        {{- include "common.labels" . | nindent 8 }}
+      annotations:
+        checksum/nginx-config: {{ tpl (.Files.Get "templates/nginx-prom/deployment.yaml") . | sha256sum }}
+        checksum/vector-config: {{ toYaml .Values | sha256sum }}
+    spec:
+      containers:
+      - name: nginx
+        image: {{ .Values.nginx.image | default "alibaba-cloud-linux-3-registry.cn-hangzhou.cr.aliyuncs.com/alinux3/nginx_optimized:20240221-1.20.1-2.3.0" }}
+        command:
+          - /bin/sh
+          - -c
+          - |-
+            nginx -g 'daemon off;'
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+      - name: vector
+        image: {{ .Values.vector.image | default "timberio/vector:0.34.0-debian" }}
+        volumeMounts:
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+        - name: vector-config
+          mountPath: /etc/vector
+        ports:
+        - containerPort: {{ .Values.vector.metricsPort | default 9598 }}
+          name: metrics
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: {{ .Release.Name }}-nginx-prom-config
+      - name: vector-config
+        configMap:
+          name: {{ .Release.Name }}-vector-config
+      - name: nginx-logs
+        emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-nginx-prom-config
+  namespace: {{ .Values.namespace | default "monitoring" }}
+data:
+  default.conf: |
+    log_format json_combined escape=json '{'
+      '"timestamp":"$time_iso8601",'
+      '"remote_addr":"$remote_addr",'
+      '"request_method":"$request_method",'
+      '"host":"$host",'
+      '"uri":"$uri",'
+      '"request":"$request",'
+      '"status": "$status",'
+      '"body_bytes_sent":"$body_bytes_sent",'
+      '"request_time":"$request_time",'
+      '"http_referrer":"$http_referer",'
+      '"http_user_agent":"$http_user_agent"'
+    '}';
+
+    server {
+        listen 80;
+        access_log /var/log/nginx/access.log json_combined;
+        
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-vector-config
+  namespace: {{ .Values.namespace | default "monitoring" }}
+data:
+  vector.yaml: |
+    data_dir: /var/lib/vector
+    sources:
+      nginx_logs:
+        type: file
+        include:
+          - /var/log/nginx/access.log
+        read_from: beginning
+        line_delimiter: "\n"
+
+    transforms:
+      parse_nginx:
+        type: remap
+        inputs:
+          - nginx_logs
+        source: |
+          . = parse_json!(.message)
+
+      nginx_metrics:
+        type: log_to_metric
+        inputs:
+          - parse_nginx
+        metrics:
+          - type: counter
+            name: nginx_requests_total
+            field: status
+            tags:
+              host: "{{ "{{" }} host {{ "}}" }}"
+              uri: "{{ "{{" }} uri {{ "}}" }}"
+              status: "{{ "{{" }} status {{ "}}" }}"
+              method: "{{ "{{" }} request_method {{ "}}" }}"
+          - type: histogram
+            name: nginx_request_duration_seconds
+            field: request_time
+            tags:
+              host: "{{ "{{" }} host {{ "}}" }}"
+              uri: "{{ "{{" }} uri {{ "}}" }}"
+              status: "{{ "{{" }} status {{ "}}" }}"
+              method: "{{ "{{" }} request_method {{ "}}" }}"
+            buckets: [ 0.5, 1, 2.5, 5, 10]
+
+    sinks:
+      prometheus:
+        type: prometheus_exporter
+        inputs:
+          - nginx_metrics
+        address: 0.0.0.0:{{ .Values.vector.metricsPort | default 9598 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-nginx-prom
+  namespace: {{ .Values.namespace | default "monitoring" }}
+  labels:
+    app: {{ .Release.Name }}-nginx-prom
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  - port: {{ .Values.vector.metricsPort | default 9598 }}
+    targetPort: {{ .Values.vector.metricsPort | default 9598 }}
+    name: metrics
+  selector:
+    app: {{ .Release.Name }}-nginx-prom
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}-nginx-prom
+  namespace: {{ .Values.namespace | default "monitoring" }}
+  labels:
+    release: {{ .Values.prometheus.release | default "ack-prometheus-operator" }}
+    {{- include "common.labels" . | nindent 4 }}
+spec:
+  endpoints:
+  - port: metrics
+    interval: {{ .Values.prometheus.scrapeInterval | default "30s" }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-nginx-prom
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.namespace | default "monitoring" }} 

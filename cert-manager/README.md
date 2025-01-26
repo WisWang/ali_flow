@@ -34,6 +34,8 @@ data:
 EOF
 ```
 
+
+
 2. 安装 Chart：
 ```bash
 helm install cert-manager-setup . \
