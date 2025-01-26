@@ -2,7 +2,9 @@
 
 [cert-manager](cert-manager/)
 
+[terraform cloud 使用](https://github.com/WisWang/ali_flow/pull/5)
 
+[atlantis 使用](https://github.com/WisWang/ali_flow/pull/6)
 
 
 # 云效流水线金丝雀发布 Helm Chart
