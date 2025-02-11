@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Release.Name }}
+    release: {{ if  .Values.canary -}}canary{{- else }}normal{{- end }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ if  .Values.canary -}}1{{ else }}{{ .Values.replicas }}{{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+      release: {{ if  .Values.canary -}}canary{{- else }}normal{{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        release: {{ if  .Values.canary -}}canary{{- else }}normal{{- end }}
+        commit: {{ .Values.commit }}
+    spec:
+      initContainers:
+        - name: app-volume
+          image: {{ .Values.image }}
+          command: ["/bin/sh","-c","cp -rp /opt/* /app"]
+          volumeMounts:
+            - mountPath: /app
+              name: app-volume
+      containers:
+        - name: {{ .Release.Name }}
+          env:
+            - name: ENV
+              value: {{ .Values.env | default "product" }}
+          image: registry-vpc.cn-beijing.aliyuncs.com/system-images/nginx:1.27.2
+          ports:
+            - containerPort: {{ .Values.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ index .Values.ingress.path 0 }}
+              port: {{ .Values.port }}
+              scheme: HTTP
+            initialDelaySeconds: 2
+            periodSeconds: 60 
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: {{ index .Values.ingress.path 0 }}
+              port: {{ .Values.port }}
+              scheme: HTTP
+            initialDelaySeconds: 2
+            periodSeconds: 60 
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          volumeMounts:              
+            - name: app-volume
+              mountPath: /var/www
+            - name: localtime
+              mountPath: /etc/localtime
+              readOnly: true
+            - mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              name: nginx-default-volume
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+            type: File
+        - name: app-volume
+          emptyDir: {}
+        - name: nginx-default-volume
+          configMap:
+            name: {{ .Release.Name }}-web-nginx-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+  name: svc-{{ .Release.Name }}
+spec:
+  selector:
+    app: {{ .Release.Name }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.port }}
+
