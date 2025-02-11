@@ -6,6 +6,8 @@
 
 [atlantis 使用](https://github.com/WisWang/ali_flow/pull/6)
 
+[gitlab atlantis 使用](https://jihulab.com/wis/ali_flow/-/merge_requests/1)
+
 
 # 云效流水线金丝雀发布 Helm Chart
 
