@@ -1,4 +1,5 @@
 version: 3
+automerge: true
 projects:
   - name: "dns-management"
     dir: terraform/atlantis
